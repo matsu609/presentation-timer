@@ -1,0 +1,198 @@
+body {
+    font-family: 'Arial', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #282c34;
+    color: #ffffff;
+    margin: 0;
+}
+
+.timer-container {
+    background-color: #3a3f47;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    width: 90%;
+    max-width: 500px;
+}
+
+h1 {
+    color: #61dafb;
+    margin-bottom: 20px;
+}
+
+.time-display {
+    font-size: 5em;
+    font-weight: bold;
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    font-variant-numeric: tabular-nums; /* 数字の幅を固定 */
+    position: relative; /* コロンの絶対配置のため */
+}
+
+.time-display .colon {
+    color: #ffffff; /* デフォルトのコロンの色 */
+    font-family: 'monospace', 'Arial', sans-serif;
+    font-size: 1em; /* 親要素と同じサイズ */
+    margin: 0 0px; /* コロンの左右のスペースを詰める */
+    vertical-align: super; /* コロンを少し高くする */
+}
+
+#minutes, #seconds {
+    color: #ffffff;
+    font-family: 'monospace', 'Arial', sans-serif; /* 固定幅フォントを適用 */
+    width: 1.8em; /* 2桁 + 符号分の幅を固定 */
+    display: inline-block; /* widthを適用するために必要 */
+    text-align: right; /* 数字を右寄せ */
+}
+
+#seconds { /* #seconds のみを上書き */
+    width: 1.2em; /* 2桁分の幅に戻す */
+    text-align: center; /* 数字を中央寄せ */
+}
+
+#milliseconds {
+    font-size: 0.5em; /* 半分のサイズ */
+    color: #ffffff; /* 他の数字と同じ色に */
+    margin-left: 0px; /* 左マージンを詰める */
+    width: 1.2em; /* 2桁分の幅に調整 */
+    display: inline-block; /* widthを適用するために必要 */
+    text-align: center; /* 数字を中央寄せ */
+}
+
+.button-container button {
+    background-color: #61dafb;
+    color: #282c34;
+    border: none;
+    padding: 10px 20px;
+    margin: 5px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.2em;
+    transition: background-color 0.3s ease;
+}
+
+.button-container button:hover {
+    background-color: #21a1f1;
+}
+
+#settings-panel {
+    background-color: #4a4f57;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+    text-align: left;
+}
+
+#settings-panel h2 {
+    color: #61dafb;
+    margin-top: 0;
+}
+
+#settings-panel p {
+    font-size: 0.9em;
+    color: #cccccc;
+    margin-bottom: 15px;
+}
+
+.bell-setting {
+    display: flex;
+    justify-content: center; /* 中央寄せ */
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 10px; /* ラベルと入力フィールドの間にスペースを追加 */
+}
+
+.bell-setting label {
+    /* width: 40px; */ /* 幅の固定を解除 */
+    font-size: 1.1em;
+    color: #ffffff;
+    /* text-align: right; */ /* 右寄せを解除 */
+    /* margin-right: 5px; */ /* マージンを解除。gapで調整 */
+}
+
+.bell-setting input {
+    flex: none; /* flex-growを無効にする */
+    width: 5em; /* 5桁分の幅 */
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #61dafb;
+    background-color: #282c34;
+    color: #ffffff;
+    font-size: 1em;
+    margin-left: 0; /* margin-leftを削除または0にする */
+}
+
+#save-settings-btn {
+    background-color: #28a745;
+    color: #ffffff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.1em;
+    margin-top: 15px;
+    transition: background-color 0.3s ease;
+}
+
+#save-settings-btn:hover {
+    background-color: #218838;
+}
+
+.message {
+    margin-top: 20px;
+    font-size: 1.5em;
+    color: #ffc107;
+}
+
+/* 新しい時間入力グループのスタイル */
+.time-input-group {
+    display: flex;
+    align-items: center;
+    justify-content: center; /* 中央寄せ */
+    gap: 5px; /* 入力フィールド間のスペース */
+    margin-bottom: 5px;
+}
+
+.time-input-group input {
+    width: 3em; /* 時間、分、秒の入力フィールドの幅を調整 */
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #61dafb;
+    background-color: #282c34;
+    color: #ffffff;
+    font-size: 1em;
+    text-align: center;
+}
+
+/* ベル設定の入力フィールドの幅を調整 */
+.bell-setting input.bell-input {
+    width: 3em; /* 時間、分、秒の入力フィールドの幅を調整 */
+}
+
+/* タイマー表示の色変更 */
+.time-display.warning-yellow #minutes,
+.time-display.warning-yellow #seconds,
+.time-display.warning-yellow #milliseconds, /* ミリ秒も色変更 */
+.time-display.warning-yellow .colon { /* コロンも色変更 */
+    color: #ffc107; /* 黄色 */
+}
+
+.time-display.warning-purple #minutes,
+.time-display.warning-purple #seconds,
+.time-display.warning-purple #milliseconds, /* ミリ秒も色変更 */
+.time-display.warning-purple .colon { /* コロンも色変更 */
+    color: #9c27b0; /* 紫色 */
+}
+
+.time-display.overtime-red #minutes,
+.time-display.overtime-red #seconds,
+.time-display.overtime-red #milliseconds,
+.time-display.overtime-red .colon { /* コロンも色変更 */
+    color: #dc3545; /* 赤色 */
+}
