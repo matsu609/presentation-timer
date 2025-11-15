@@ -172,7 +172,7 @@ async function checkBellTimes() { // async関数に変更
 
     for (const bellSetting of bellTimes) { // forEachをfor...ofに変更してawaitを可能にする
         console.log(`  Checking bell: count=${bellSetting.count}, time=${bellSetting.time}, rung=${bellSetting.rung}`);
-        if (!isOvertime && !bellSetting.rung && (currentElapsedTime >= bellSetting.time - 0.01)) { // 0.01秒の許容誤差
+        if (!bellSetting.rung && (currentElapsedTime >= bellSetting.time - 0.01 || (isOvertime && totalSeconds <= 0 && bellSetting.time <= initialTotalSecondsForBellCheck))) {
             bellSetting.rung = true; // ここに移動
             let message = `${Math.floor(bellSetting.time / 60)}分${bellSetting.time % 60}秒経過しました。`;
             if (bellSetting.count === 3) {
