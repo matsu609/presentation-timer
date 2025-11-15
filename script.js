@@ -207,7 +207,7 @@ async function playSoundElement(count) {
             console.error('Audio play failed:', e);
         }
         if (i < count - 1) {
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 300));
         }
     }
     console.log(`playSoundElement finished playing ${count} sounds.`);
