@@ -40,31 +40,18 @@ const enableNoSleepBtn = document.getElementById('enable-nosleep');
 // let audioContext;
 // let audioBuffer;
 
-// Web Workerの代わりにメインスレッドでタイマーを管理する変数
-let timerInterval; // setIntervalのIDを保持
-let initialTotalSecondsForTimer = 0; // タイマー開始時の秒数 (Web WorkerのinitialTotalSecondsに相当)
-let startTime = 0; // タイマー開始時刻 (Web WorkerのstartTimeに相当)
+// Web Workerのインスタンス
+const timerWorker = new Worker('worker.js');
 
-// Web Workerのonmessageロジックを直接実行する関数
-function runTimerLogic() {
-    const now = Date.now();
-    const elapsedSinceStart = (now - startTime) / 1000;
-
-    if (!isOvertime) {
-        totalSeconds = initialTotalSecondsForTimer - elapsedSinceStart;
-        if (totalSeconds <= 0) {
-            totalSeconds = 0;
-            isOvertime = true;
-            initialTotalSecondsForTimer = 0; // オーバータイム開始時の基準をリセット
-            startTime = Date.now(); // オーバータイム開始時刻を更新
-        }
-    } else {
-        totalSeconds = -elapsedSinceStart;
+timerWorker.onmessage = function(e) {
+    const data = e.data;
+    if (data.type === 'tick') {
+        totalSeconds = data.totalSeconds;
+        isOvertime = data.isOvertime;
+        updateDisplay();
+        checkBellTimes();
     }
-    
-    updateDisplay();
-    checkBellTimes();
-}
+};
 
 
 function requestNotificationPermission() {
@@ -119,14 +106,10 @@ function startTimer() {
     isRunning = true;
     initialTotalSecondsForBellCheck = totalSeconds; // ベルチェック用の初期秒数を設定
 
-    // Web Workerの'start'コマンドのロジックを直接実行
-    initialTotalSecondsForTimer = totalSeconds;
-    startTime = Date.now();
-    isOvertime = false;
-
-    if (timerInterval) clearInterval(timerInterval);
-
-    timerInterval = setInterval(runTimerLogic, 10); // 10ミリ秒ごとに更新
+    timerWorker.postMessage({
+        command: 'start',
+        initialTotalSeconds: totalSeconds
+    });
 
     noSleep.enable(); // タイマー開始時にスリープ防止を有効化
     toggleTimerBtn.textContent = 'ストップ'; // ボタンテキストを更新
@@ -135,9 +118,7 @@ function startTimer() {
 function stopTimer() {
     if (!isRunning) return;
     isRunning = false;
-    // Web Workerの'stop'コマンドのロジックを直接実行
-    clearInterval(timerInterval);
-    timerInterval = null;
+    timerWorker.postMessage({ command: 'stop' });
 
     noSleep.disable(); // タイマー停止時にスリープ防止を無効化
     toggleTimerBtn.textContent = 'スタート'; // ボタンテキストを更新
@@ -147,11 +128,10 @@ function resetTimer() {
     stopTimer(); // releaseWakeLockもここで呼ばれる
     saveBellSettings(); // 設定を保存し、totalSecondsを更新
 
-    // Web Workerの'reset'コマンドのロジックを直接実行
-    clearInterval(timerInterval);
-    timerInterval = null;
-    // totalSecondsはsaveBellSettingsで設定される
-    isOvertime = false;
+    timerWorker.postMessage({
+        command: 'reset',
+        initialTotalSeconds: totalSeconds
+    });
     
     messageContainer.textContent = '';
     bellTimes.forEach(bell => bell.rung = false);
@@ -166,21 +146,33 @@ async function playSoundAndNotify(count, message) {
 }
 
 async function checkBellTimes() { // async関数に変更
-    const currentElapsedTime = initialTotalSecondsForBellCheck - totalSeconds;
     let needsColorUpdate = false;
-    console.log(`checkBellTimes: currentElapsedTime = ${currentElapsedTime}, totalSeconds = ${totalSeconds}`);
+    // totalSecondsはWeb Workerから常に最新の値が提供される
+    // ベルの判定はtotalSecondsがベル設定時間を下回ったかどうかで判断する
+    // オーバータイムの場合はtotalSecondsが負の値になるため、その絶対値で比較する
 
-    for (const bellSetting of bellTimes) { // forEachをfor...ofに変更してawaitを可能にする
-        console.log(`  Checking bell: count=${bellSetting.count}, time=${bellSetting.time}, rung=${bellSetting.rung}`);
-        if (!bellSetting.rung && (currentElapsedTime >= bellSetting.time - 0.01 || (isOvertime && totalSeconds <= 0 && bellSetting.time <= initialTotalSecondsForBellCheck))) {
-            bellSetting.rung = true; // ここに移動
+    for (const bellSetting of bellTimes) {
+        const bellTimeInSeconds = bellSetting.time;
+        const currentRemainingTime = totalSeconds; // totalSecondsは残り時間（オーバータイムで負）
+
+        // ベルがまだ鳴っておらず、かつベル設定時間を経過した場合
+        // 通常時: totalSeconds <= 0 (ベル設定時間経過)
+        // オーバータイム時: totalSeconds <= 0 (ベル設定時間経過)
+        // ただし、オーバータイム時はtotalSecondsが負の値になるため、
+        // ベル設定時間（正の値）と比較する際は注意が必要。
+        // ここでは、ベル設定時間が経過したかどうかを、
+        // initialTotalSecondsForBellCheck（タイマー開始時の合計秒数）を基準に判断する。
+        // つまり、経過時間がbellSetting.timeを超えたかどうか。
+        const elapsedTime = initialTotalSecondsForBellCheck - currentRemainingTime;
+
+        if (!bellSetting.rung && elapsedTime >= bellTimeInSeconds - 0.01) {
+            bellSetting.rung = true;
             let message = `${Math.floor(bellSetting.time / 60)}分${bellSetting.time % 60}秒経過しました。`;
             if (bellSetting.count === 3) {
                 message = '時間です！';
             }
             await playSoundAndNotify(bellSetting.count, message);
             needsColorUpdate = true;
-            console.log(`    Bell ${bellSetting.count} rung!`);
         }
     }
 
@@ -234,6 +226,12 @@ function saveBellSettings() {
     console.log("saveBellSettings: bellTimes =", bellTimes, "totalSeconds =", totalSeconds); // 追加
     bellTimes.sort((a, b) => a.time - b.time);
     updateDisplay();
+    // Web Workerに現在のtotalSecondsを通知
+    timerWorker.postMessage({
+        command: 'setTotalSeconds',
+        totalSeconds: totalSeconds,
+        isOvertime: isOvertime
+    });
 }
 
 function handleSoundSelectChange() {
